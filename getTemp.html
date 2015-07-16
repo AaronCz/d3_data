@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+	<style>
+
+	.axis {
+	  font: 10px sans-serif;
+	}
+
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+	
+	.chart rect {
+		fill: steelblue;
+		stroke: white;
+	}
+	</style>
+</head>
+
+<body> 
+<div id="option">
+    <input name="updateButton" 
+           type="button" 
+           value="Change Sensor file" 
+           onclick="updateData()" />
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+/*	<form action="temp_select.asp">
+		Select a temperature file: <input type="file" name="temp_file">
+		<input type="submit">
+	</form>*/
+var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = 600 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+
+// Parse the date / time
+var	parseDate = d3.time.format("%d.%m.%Y").parse;
+var	parseTime = d3.time.format("%H:%M:%S").parse;
+
+var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+var y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(d3.time.format("%H:%M:%S"));
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .ticks(10);
+/*
+//Add svg canvas	
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+	.append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+*/
+//Get data
+d3.csv("temperature_readings/28-00000618d8aa_temperature.csv", function(error, data) {
+    data.forEach(function(d) {
+		d.value = +d.Temp;
+		d.time = parseTime(d.Time);
+        d.date = parseDate(d.Date);
+        d.s_time= +d.Start_time;
+		//window.alert(d.Temp + " ")
+    });
+  
+  //domain used to set bounds on x and y axis	
+  x.domain(data.map(function(d) { return d.time;}));
+  y.domain([d3.min(data, function(d) { return d.value; }), d3.max(data, function(d) { return d.value; })]);
+  //nice() function adds a bit of padding to top and bottom
+  y.nice(2);
+/*
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", "-.55em")
+      .attr("transform", "rotate(-90)" );
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text") //all used to get the writing to say "Temp in C" at an angle
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Temp in C");
+
+  svg.selectAll("bar")
+      .data(data)
+	.enter().append("rect")
+      .style("fill", "steelblue")
+      .attr("x", function(d) { return x(d.time); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+*/
+		var w = 20,
+			h = 220;
+
+	var chart = d3.select("body")
+			.append("svg:svg")
+			.attr("class", "chart")
+			.attr("width", w * data.length - 1)
+			.attr("height", h);
+		
+		chart.selectAll("rect")
+			.data(data)
+		  .enter().append("svg:rect")
+		    .style("fill", "turquoise")
+			.attr("x", function(d) { return x(d.time); })
+			.attr("y", function(d) { return y(d.value) - .5; })
+			.attr("width", w)
+			.attr("height", function(d) { return height - y(d.value); });
+		
+		chart.append("svg:line")
+			.attr("x1", 0)
+			.attr("x2", w * data.length)
+			.attr("y1", h - .5)
+			.attr("y2", h - .5)
+			.attr("stroke", "#000");
+	
+		chart.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(xAxis)
+		.selectAll("text")
+			.style("text-anchor", "end")
+			.attr("dx", "-.8em")
+			.attr("dy", "-.55em")
+			.attr("transform", "rotate(-90)" );
+
+		chart.append("g")
+			.attr("class", "y axis")
+			.call(yAxis)
+		.append("text") //all used to get the writing to say "Temp in C" at an angle
+			.attr("transform", "rotate(-90)")
+			.attr("y", 15)
+			.attr("dy", ".71em")
+			.style("text-anchor", "end")
+			.text("Temp in C");
+		
+		function redraw() {
+  
+		var rect = chart.selectAll("rect")
+			.data(data, function(d) { return d.time; });
+  
+		rect.enter().insert("svg:rect", "line")
+			.attr("x", function(d, i) { return x(i + 1) - .5; })
+			.attr("y", function(d) { return h - y(d.value) - .5; })
+			.attr("width", w)
+			.attr("height", function(d) { return y(d.value); })
+		.transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i) - .5; });
+ 
+		rect.transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i) - .5; });
+ 
+		rect.exit().transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i - 1) - .5; })
+			.remove();
+		}
+});
+
+</script>
+
+<script>
+// ** Update data section (Called from the onclick)
+function updateData() {
+
+    // Get the data again
+    d3.csv("temperature_readings/28-0000061785c5_temperature.csv", function(error, data) {
+       	data.forEach(function(d) {
+	    	d.value = +d.Temp;
+			d.time = parseTime(d.Time);
+			d.date = parseDate(d.Date);
+			d.s_time= +d.Start_time;
+	    });
+
+	//domain used to set bounds on x and y axis	
+	x.domain(data.map(function(d) { return d.time;}));
+	y.domain([d3.min(data, function(d) { return d.value; }), d3.max(data, function(d) { return d.value; })]);
+	//nice() function adds a bit of padding to top and bottom
+	y.nice(2);
+
+    // Select the section we want to apply our changes to
+    var svg = d3.select("body").transition();
+
+/*    // Select the section we want to apply our changes to
+    var svg = d3.select("body").data(data);
+	
+	svg.selectAll("bar")
+      .data(data)
+	.enter().append("rect")
+      .style("fill", "steelblue")
+      .attr("x", function(d) { return x(d.time); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+*/
+
+//        var svg = d3.selectAll("body").data(data);
+//		svg.exit().remove();
+
+    // Make the changes
+        svg.selectAll("bar")   // change the bars
+            .attr("d", (data));
+        svg.select(".x.axis") // change the x axis
+            .call(xAxis)
+			.selectAll("text")
+				.style("text-anchor", "end")
+				.attr("dx", "-.8em")
+				.attr("dy", "-.55em")
+				.attr("transform", "rotate(-90)" );
+        svg.select(".y.axis") // change the y axis
+            .call(yAxis)
+    
+	});
+
+	function myFunction() {
+		alert(svg);
+	}
+	myFunction();
+}
+</script>
+
+</body>

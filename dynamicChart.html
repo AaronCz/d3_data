@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3 Test</title>
+        <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+		<style>
+		.chart rect {
+			fill: steelblue;
+			stroke: white;
+		}
+		</style>
+	</head>
+	<body>
+		<script>
+		// Parse the date / time
+		var	parseDate = d3.time.format("%d.%m.%Y").parse;
+		var	parseTime = d3.time.format("%H:%M:%S").parse;
+
+		var t = 1297110663, // start time (seconds since epoch)
+		v = 70, // start value (subscribers)
+		data = d3.range(33).map(next); // starting dataset
+  
+		//Get data
+		d3.csv("temperature_readings/28-00000618d8aa_temperature.csv", 
+		function(error, data) {
+			data.forEach(function(d) {
+				d.value = +d.Temp;
+				d.time = parseTime(d.Time);
+				d.date = parseDate(d.Date);
+				d.s_time= +d.Start_time;
+			});
+		})
+		
+		function next() {
+			return {
+				time: ++t,
+				value: v = ~~Math.max(10, Math.min(90, v + 10 * (Math.random() - .5)))
+			};
+		}
+
+		setInterval(function() {
+			data.shift();
+			data.push(next());
+			redraw();
+		}, 1500);
+		
+		var w = 20,
+			h = 80;
+  
+		var margin = {top: 20, right: 20, bottom: 70, left: 40},
+			width = 600 - margin.left - margin.right,
+			height = 300 - margin.top - margin.bottom;
+		
+		var xAxis = d3.svg.axis()
+			.scale(x)
+			.orient("bottom")
+			.tickFormat(d3.time.format("%H:%M:%S"));
+
+		var yAxis = d3.svg.axis()
+			.scale(y)
+			.orient("left")
+			.ticks(10);
+		
+		var x = d3.scale.linear() 
+			.domain([0, 1]) //this is using a simple domain, assuming all data is even and no missing parts. To
+			.range([0, w]); // make it more robust, time attribute should be used to check for changes
+  
+		var y = d3.scale.linear()
+			.domain([0, 100])
+			.rangeRound([0, h]);
+
+		//Add svg canvas	
+		var svg = d3.select("body").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+			.append("g")
+			.attr("transform", 
+				"translate(" + margin.left + "," + margin.top + ")");
+		
+		var chart = d3.select("body")
+			.append("svg:svg")
+			.attr("class", "chart")
+			.attr("width", w * data.length - 1)
+			.attr("height", h);
+		
+		chart.selectAll("rect")
+			.data(data)
+		  .enter().append("svg:rect")
+			.attr("x", function(d, i) { return x(i) - .5; })
+			.attr("y", function(d) { return h - y(d.value) - .5; })
+			.attr("width", w)
+			.attr("height", function(d) { return y(d.value); });
+		
+		chart.append("svg:line")
+			.attr("x1", 0)
+			.attr("x2", w * data.length)
+			.attr("y1", h - .5)
+			.attr("y2", h - .5)
+			.attr("stroke", "#000");	
+	
+/*		chart.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(xAxis)
+		.selectAll("text")
+			.style("text-anchor", "end")
+			.attr("dx", "-.8em")
+			.attr("dy", "-.55em")
+			.attr("transform", "rotate(-90)" ); */
+		
+		function redraw() {
+  
+		var rect = chart.selectAll("rect")
+			.data(data, function(d) { return d.time; });
+  
+		rect.enter().insert("svg:rect", "line")
+			.attr("x", function(d, i) { return x(i + 1) - .5; })
+			.attr("y", function(d) { return h - y(d.value) - .5; })
+			.attr("width", w)
+			.attr("height", function(d) { return y(d.value); })
+		.transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i) - .5; });
+ 
+		rect.transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i) - .5; });
+ 
+		rect.exit().transition()
+			.duration(1000)
+			.attr("x", function(d, i) { return x(i - 1) - .5; })
+			.remove();
+ 
+		}
+		</script>
+	</body>
+</html>

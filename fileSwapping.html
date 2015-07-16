@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+	<style>
+
+	.axis {
+	  font: 10px sans-serif;
+	}
+
+	.bar {
+		fill: #3c9dd0;
+	}
+
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+	
+	.chart rect {
+		fill: steelblue;
+		stroke: white;
+	}
+	</style>
+</head>
+
+<body> 
+<div id="option">
+    <input name="updateButton" 
+           type="button" 
+           value="Change Sensor file" 
+           onclick="updateData()" />
+</div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+var file = 1;
+var colour;
+var fileOne = "temperature_readings/28-00000618d8aa_temperature.csv";
+var fileTwo = "temperature_readings/28-0000061785c5_temperature.csv";
+
+var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = 600 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+
+// Parse the date / time
+var	parseDate = d3.time.format("%d.%m.%Y").parse;
+var	parseTime = d3.time.format("%H:%M:%S").parse;
+
+var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+var y = d3.scale.linear().range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(d3.time.format("%H:%M:%S"));
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .ticks(10);
+
+//Add svg canvas	
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+	.append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+
+//Get data
+d3.csv("temperature_readings/28-00000618d8aa_temperature.csv", function(error, data) {
+    data.forEach(function(d) {
+		d.value = +d.Temp;
+		d.time = parseTime(d.Time);
+        d.date = parseDate(d.Date);
+        d.s_time= +d.Start_time;
+		//window.alert(d.Temp + " ")
+    });
+  
+  //domain used to set bounds on x and y axis	
+  x.domain(data.map(function(d) { return d.time;}));
+  y.domain([d3.min(data, function(d) { return d.value; }), d3.max(data, function(d) { return d.value; })]);
+  //nice() function adds a bit of padding to top and bottom
+  y.nice(2);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", "-.55em")
+      .attr("transform", "rotate(-90)" );
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text") //all used to get the writing to say "Temp in C" at an angle
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Temp in C");
+
+  svg.selectAll(".bar")
+      .data(data)
+	.enter().append("rect")
+      .style("fill", "steelblue")
+      .attr("x", function(d) { return x(d.time); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+
+/*	var chart = d3.select(".content")
+   .append("svg:svg")
+     .attr("class", "chart")
+     .attr("width", 440)
+     .attr("height", 140)
+   .append("svg:g")
+     .attr("transform", "translate(10,15)"); 
+
+	chart.selectAll("line")
+     .data(x.ticks(10))
+   .enter().append("svg:line")
+     .attr("x1", x)
+     .attr("x2", x)
+     .attr("y1", 0)
+     .attr("y2", 120)
+     .attr("stroke", "#ccc"); 
+	 
+	 chart.append("svg:line")
+		.attr("y1", 0)
+		.attr("y2", 120)
+		.attr("stroke", "#000"); */
+});
+
+// ** Update data section (Called from the onclick)
+function updateData() {
+	var selected = "";
+	d3.selectAll("rect").remove();
+	if (file == 1){
+		selected = fileTwo;
+		file = 2;
+		svg.style("fill", "turquoise");
+		colour = "turquoise"
+	} else{
+		selected =  fileOne;
+		file = 1;
+		svg.style("fill", "steelblue");
+		colour = "steelblue"
+
+	}
+    d3.csv(selected, function(error, data) {
+       	data.forEach(function(d) {
+	    	d.value = +d.Temp;
+			d.time = parseTime(d.Time);
+			d.date = parseDate(d.Date);
+			d.s_time= +d.Start_time;
+	    });
+
+	//domain used to set bounds on x and y axis	
+	x.domain(data.map(function(d) { return d.time;}));
+	y.domain([d3.min(data, function(d) { return d.value; }), d3.max(data, function(d) { return d.value; })]);
+	//nice() function adds a bit of padding to top and bottom
+	y.nice(2);
+
+	// update bars
+	var sel = svg.selectAll(".bar").data(data);
+    // Select the section we want to apply our changes to
+    //var svg = d3.select("body").transition();
+
+    // Make the changes
+        svg.selectAll(".bar")   // change the bars
+            .attr("d", (data));
+        svg.select(".x.axis") // change the x axis
+            .call(xAxis)
+			.selectAll("text")
+				.style("text-anchor", "end")
+				.attr("dx", "-.8em")
+				.attr("dy", "-.55em")
+				.attr("transform", "rotate(-90)" );
+        svg.select(".y.axis") // change the y axis
+            .call(yAxis)
+		
+		// add new bars
+		sel.enter().append("rect")
+			.attr("class", ".bar")
+			.style("fill", colour);
+		// update existing (and new) bars
+		sel.attr("x", function(d) { return x(d.time); })
+			.attr("width", x.rangeBand())
+			.attr("y", function(d) { return y(d.value); })
+			.attr("height", function(d) { return height - y(d.value); })
+		// remove bars no longer present
+		sel.exit().remove();	
+})
+
+// Confusion continues here. I know I need a transition, but I have
+// no idea how to implement it.
+
+}
+
+ /*   // Get the data again
+    d3.csv("temperature_readings/28-0000061785c5_temperature.csv", function(error, data) {
+       	data.forEach(function(d) {
+	    	d.value = +d.Temp;
+			d.time = parseTime(d.Time);
+			d.date = parseDate(d.Date);
+			d.s_time= +d.Start_time;
+	    });
+
+	//domain used to set bounds on x and y axis	
+	x.domain(data.map(function(d) { return d.time;}));
+	y.domain([d3.min(data, function(d) { return d.value; }), d3.max(data, function(d) { return d.value; })]);
+	//nice() function adds a bit of padding to top and bottom
+	y.nice(2);
+
+    // Select the section we want to apply our changes to
+    var svg = d3.select("body").transition();
+
+    // Make the changes
+        svg.selectAll(".bar")   // change the bars
+            .attr("d", (data));
+        svg.select(".x.axis") // change the x axis
+            .call(xAxis)
+			.selectAll("text")
+				.style("text-anchor", "end")
+				.attr("dx", "-.8em")
+				.attr("dy", "-.55em")
+				.attr("transform", "rotate(-90)" );
+        svg.select(".y.axis") // change the y axis
+            .call(yAxis)
+
+	});
+   */ 
+/*	function myFunction() {
+		alert(svg);
+	}
+	myFunction();
+*/
+</script>
+
+</body>
