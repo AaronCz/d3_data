@@ -11,7 +11,6 @@ ser = serial.Serial(SERIALPORT, BAUDRATE)
 zb = ZigBee(ser)
 
 #this goes to a file and opens it 
-#file_to_send = "xbeeReceive.py"
 file_to_send = "temperature_readings/28-00000618d8aa_temperature.csv"
 file_open = open(file_to_send) 
 
@@ -27,16 +26,10 @@ for idx, val in enumerate(file_contents):
 # Continuously read and print packets
 while True:
     try:
-	#meant to read in data from an xbee (but doesn't seem to work)
-        #data = zb.wait_read_frame() #Get data for later use
-	#print data # for debugging only
-        #print data['rf_data']
-
 	#recieve raw input from user
 	info = raw_input()
 	#send user input to xbee with corrosponding address
 	zb.send('tx', data=info, dest_addr_long='\x00\x13\xa2\x00\x40\xe2\xc6\xe2', dest_addr='\xff\xff', frame_id='\x00')
-
 
     except KeyboardInterrupt:
         break
