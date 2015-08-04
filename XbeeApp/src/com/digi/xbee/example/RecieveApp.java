@@ -56,8 +56,9 @@ public class RecieveApp {
 		
 		XBeeDevice myDevice = new XBeeDevice(PORT, BAUD_RATE);
 
-		//create file and buffer to write to file
-		String filename = "temp_data.csv";
+		//filename is used to specify to write to a specific directory
+		String filename = "C:\\Users\\Sez Cz\\Documents\\GitHub\\d3_data\\temperature_readings\\temp_data.csv";
+		//File and BufferedWriter are used in writing to that directory
 		File file = new File(filename);
 		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 
@@ -71,10 +72,17 @@ public class RecieveApp {
 		while (true) {
 			XBeeMessage xbeeMessage = myDevice.readData();
 			if (xbeeMessage != null)
+				//this gets the xbee device number and the message being sent across
 				System.out.format("From %s >> %s%n", xbeeMessage.getDevice().get64BitAddress(), 
 						//HexUtils.prettyHexString(HexUtils.byteArrayToHexString(xbeeMessage.getData())), 
 						info = new String(xbeeMessage.getData()));
 						
+						//check if the first line is a file name
+						if (info.contains(".csv")){
+							System.out.println("Found file title: "+ info);
+							continue;
+						}
+			
 						String[] values = info.split(",");
 
 						for (int i = 0; i <values.length; i++){ 
@@ -83,12 +91,14 @@ public class RecieveApp {
 		                    }
 							writer.write(values[i]);
 						}
+						//if previous info is the same, do nothing, else, send
 						if(previousInfo.equals(info)){
 							
 						}else{
 							writer.flush();
 						}
 						
+						//update previousInfo
 						previousInfo = info;
 
 		}
